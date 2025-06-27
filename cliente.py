@@ -17,7 +17,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as cliente:
       [X] Sair da aplicação
     ''')
     while True:
-        input_usuario = input('Digite a opção desejada: ').lower()
+        input_usuario = input('Digite a opção desejada: ').lower() 
         if input_usuario == '1':
             id_poste = input('Digite o ID do poste(número inteiro): ')
             acao= input('Digite a ação desejada (ligar/desligar): ').lower()
@@ -46,7 +46,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as cliente:
             id_semaforo=input('Digite o ID do semáforo(número inteiro): ')
             tempo = input('Digite o tempo de permanência fechado (em segundos): ')
             if tempo.isdigit():
-                tempo = int(tempo)
+                
                 comando = {'id_semaforo': id_semaforo, 'tempo_fechado': tempo}
                 cliente.sendall(json.dumps(comando).encode('utf-8'))
                 resposta = cliente.recv(1024).decode('utf-8')
