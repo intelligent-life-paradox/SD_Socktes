@@ -1,5 +1,5 @@
 ''' O Gateway deve receber e enviar via tcp'''
-#from protocols import tcpcliente, tcpserver
+import socket
 from protos import todolist_pb2 as comunication
 
 my_list = comunication.TodoList()
@@ -24,3 +24,27 @@ print(my_list)
         ...
     def enviar():
         ...'''
+
+class Gateway():
+    def __init__(self, host='localhost', port=12345):
+        self.host = host
+        self.port = port
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen(1)
+        print(f"Gateway iniciado em {self.host}:{self.port}")
+    
+    def receber(self):
+        print("Aguardando conexão...")
+        lista_recebida = comunication.TodoList()
+         lista_recebida.ParseFromString(dados_bytes)
+
+        print("\n### TODO LIST RECEBIDA ###")
+        print(f"Owner ID: {lista_recebida.owner_id}")
+        print(f"Owner Name: {lista_recebida.owner_name}")
+        print("Tarefas:")
+        for i, tarefa in enumerate(lista_recebida.todos):
+            status = comunication.TaskState.Name(tarefa.state)
+            print(f"  {i+1}. {tarefa.task} - Status: {status} - Até: {tarefa.due_date}")
+
+        return lista_recebida
