@@ -62,6 +62,3 @@ while True:
     elif input_usuario == 'x':
         print('Saindo da aplicação...')
         break
-           
-
-            
