@@ -10,6 +10,7 @@ class Gateway():
        # instanciando os servidores de recepção
        self.tcpServer = tcp.TCP('localhost',6789) 
        self.udpServer = udp.UDP('localhost',6789)
+       
        self.multicastServer = multicast.Mulicast()
 
     def start(self):
@@ -26,7 +27,11 @@ class Gateway():
         multicast_thread.start()
 
     print("Gateway rodando. Pressione Ctrl+C para sair.")
-
+    def listarDispistivos():
+        ...
+    def ComandoDispostivos():
+        ...
+                  
     def accpetConections(self,serverSocket):
         while True:
             clientSocket , clienteAdress = serverSocket.accept()

@@ -4,7 +4,7 @@ import struct
 class Mulicast():    
     
     def __init__(self):
-        self.MCAST_GROUP = '224.5.6.7'
+        self.MCAST_GROUP = '224.1.1.1'
         self.MCAST_PORT = 12345
         self.msg = b'SERVICO_DISCOVERY_REQUEST' # precisa ser em protobuffer
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -15,7 +15,8 @@ class Mulicast():
 
         self.sock.sendto(self.msg, (self.MCAST_GROUP,self.MCAST_PORT ))
 
-        lista_ips_descobertos = [] # estes caras vão vir do protobuffer
+        lista_ips_descobertos = [] # estes caras vão vir como protobuffer
+        
         while True:
             try:
                 dados, endereco_servidor = self.sock.recvfrom(1024)
@@ -49,7 +50,7 @@ class Mulicast():
         self.sock.close()
     def Server():
         # --- Configurações Comuns ---
-        MCAST_GROUP = '224.5.6.7'
+        MCAST_GROUP = '224.1.1.1'
         MCAST_PORT = 12345
         SERVICE_NAME = "MeuServicoLegal-01"
         DISCOVERY_REQUEST_MSG = b'SERVICO_DISCOVERY_REQUEST' # Mensagem que o cliente envia
