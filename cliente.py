@@ -1,3 +1,5 @@
+from protocols import tcp,udp
+
 print("### CONTROLE DE COMANDOS ###")
 
 print('''
@@ -12,7 +14,9 @@ print('''
       ''')
 
 while True:
-    entrada_usuario = input("Digite uma opção: ")
+    entrada_usuario = input("Digite uma opção: ")   
+    protocol = tcp.TCP('localhost',6789)
+    tcpClient = protocol.Cliente(entrada_usuario)
     if entrada_usuario == '1':
         ...
     elif entrada_usuario == '2':

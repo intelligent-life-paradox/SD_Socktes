@@ -1,8 +1,8 @@
 import socket
 import struct
 
-
-class Mulicast():
+class Mulicast():    
+    
     def __init__(self):
         self.MCAST_GROUP = '224.5.6.7'
         self.MCAST_PORT = 12345
@@ -15,7 +15,7 @@ class Mulicast():
 
         self.sock.sendto(self.msg, (self.MCAST_GROUP,self.MCAST_PORT ))
 
-        lista_ips_descobertos = []
+        lista_ips_descobertos = [] # estes caras vão vir do protobuffer
         while True:
             try:
                 dados, endereco_servidor = self.sock.recvfrom(1024)

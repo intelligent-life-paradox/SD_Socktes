@@ -1,0 +1,11 @@
+edition = "2023";
+
+package tutorial;
+
+message Comunicacao {
+  string tipo = 1; 
+  string ip = 2;
+  int32 porta = 3;
+  string msg = 4;
+  bool estado = 5;
+  }

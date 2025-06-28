@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 class Dispositivos():
     def __init__(self, tipo, ip, porta, estado)->None:
         self.tipo = tipo
@@ -12,22 +14,25 @@ class Dispositivos():
         self.estado =  valor
 
     def receber(msg):
-        ...
+        pass
 
     def enviar():
-        ...
-         
+        pass
+    
+    @abstractmethod
+    def estados_dispostivos(self):
+        pass
+    
 class Atuador(Dispositivos):
     
     def __init__(self):
-
         if self.tipo == 'Câmera':
              super.__init__('Câmera','224.5.6.7',12346, False)
         elif self.tipo =='Poste':
              super.__init__('Câmera','224.5.6.7',12347, False)
         elif self.tipo =='Semáforo':
              super.__init__('Semáforo','224.5.6.7',12348, False)
-        
+
     def receberComando(self, comando):
         '''comando precisar ser transmitido via protobuffer''' 
         self.setEstado(comando)
@@ -35,7 +40,6 @@ class Atuador(Dispositivos):
             print(f"Dispositivo {self.tipo} Ligado")
         else:
             print(f"Dispositivo {self.tipo} Ligado")
-
 class Continuos(Dispositivos):
     def __init__(self):
         if self.tipo == 'Sensor_Ar':
@@ -45,3 +49,6 @@ class Continuos(Dispositivos):
 
     def envio():
         ...
+class Camera(Atuador):
+    def __init__():
+        super.__init__()
