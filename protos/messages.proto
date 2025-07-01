@@ -6,8 +6,9 @@ enum DeviceType {
   UNKNOWN = 0; // O valor padrão para um enum proto3 deve ser 0.
   LIGHT_POST = 1;
   TRAFFIC_LIGHT = 2;
-  TEMPERATURE_SENSOR = 3;
-  AIR_QUALITY_SENSOR = 4;
+  CAMERA = 3; 
+  TEMPERATURE_SENSOR = 4;
+  AIR_QUALITY_SENSOR = 5;
 }
 
 // 1. Mensagem para o anúncio de um dispositivo.
@@ -24,6 +25,7 @@ message DeviceInfo {
 // 2. Mensagem para enviar um comando a um atuador.
 // Usada pelo gateway para controlar um dispositivo.
 // Corresponde ao método `handle_connection` da classe `Atuador`.
+
 message Command {
   bool state = 1; // true para "ligar", false para "desligar".
   // Poderia ser estendido com mais campos, como "cor", "intensidade", etc.

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\"q\n\nDeviceInfo\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\x19\n\x04type\x18\x02 \x01(\x0e\x32\x0b.DeviceType\x12\x12\n\nip_address\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\x05\x12\x13\n\x0bis_actuator\x18\x05 \x01(\x08\"\x18\n\x07\x43ommand\x12\r\n\x05state\x18\x01 \x01(\x08\"<\n\nSensorData\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01\x12\x0c\n\x04unit\x18\x03 \x01(\t\"~\n\x10SmartCityMessage\x12\x1e\n\x07\x64\x65vices\x18\x01 \x01(\x0b\x32\x0b.DeviceInfoH\x00\x12\x1b\n\x07\x63ommand\x18\x02 \x01(\x0b\x32\x08.CommandH\x00\x12\"\n\x0bsensor_data\x18\x03 \x01(\x0b\x32\x0b.SensorDataH\x00\x42\t\n\x07payload*l\n\nDeviceType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0e\n\nLIGHT_POST\x10\x01\x12\x11\n\rTRAFFIC_LIGHT\x10\x02\x12\x16\n\x12TEMPERATURE_SENSOR\x10\x03\x12\x16\n\x12\x41IR_QUALITY_SENSOR\x10\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0emessages.proto\"q\n\nDeviceInfo\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\x19\n\x04type\x18\x02 \x01(\x0e\x32\x0b.DeviceType\x12\x12\n\nip_address\x18\x03 \x01(\t\x12\x0c\n\x04port\x18\x04 \x01(\x05\x12\x13\n\x0bis_actuator\x18\x05 \x01(\x08\"\x18\n\x07\x43ommand\x12\r\n\x05state\x18\x01 \x01(\x08\"<\n\nSensorData\x12\x11\n\tdevice_id\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x01\x12\x0c\n\x04unit\x18\x03 \x01(\t\"~\n\x10SmartCityMessage\x12\x1e\n\x07\x64\x65vices\x18\x01 \x01(\x0b\x32\x0b.DeviceInfoH\x00\x12\x1b\n\x07\x63ommand\x18\x02 \x01(\x0b\x32\x08.CommandH\x00\x12\"\n\x0bsensor_data\x18\x03 \x01(\x0b\x32\x0b.SensorDataH\x00\x42\t\n\x07payload*x\n\nDeviceType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0e\n\nLIGHT_POST\x10\x01\x12\x11\n\rTRAFFIC_LIGHT\x10\x02\x12\n\n\x06\x43\x41MERA\x10\x03\x12\x16\n\x12TEMPERATURE_SENSOR\x10\x04\x12\x16\n\x12\x41IR_QUALITY_SENSOR\x10\x05\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,7 +32,7 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'messages_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_DEVICETYPE']._serialized_start=349
-  _globals['_DEVICETYPE']._serialized_end=457
+  _globals['_DEVICETYPE']._serialized_end=469
   _globals['_DEVICEINFO']._serialized_start=18
   _globals['_DEVICEINFO']._serialized_end=131
   _globals['_COMMAND']._serialized_start=133

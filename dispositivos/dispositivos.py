@@ -32,7 +32,7 @@ class Dispositivos:
 
     def __str__(self):
         return f"ID: {self.device_id}, Tipo: {self.tipo}, Endereço: {self.ip}:{self.port}, Estado: {'Ligado' if self.estado else 'Desligado'}"
-
+    
     def iniciar(self):
         """Inicia os processos de descoberta e o servidor de comandos em threads."""
         print(f"Iniciando dispositivo: {self.device_id}")
@@ -88,15 +88,15 @@ class Dispositivos:
 
     def send_announcement(self, gateway_address):
         """Envia a mensagem de anúncio (Protocol Buffers) para o Gateway."""
-        response_message = messages_pb2.SmartCityMessage()
+        response_message = messages_pb2.DeviceInfo()
         
         proto_device_type = getattr(messages_pb2, self.tipo.upper(), messages_pb2.UNKNOWN)
 
-        response_message.Devices.device_id = self.device_id
-        response_message.Devices.type = proto_device_type
-        response_message.Devices.ip_address = self.ip
-        response_message.Devices.port = self.port
-        response_message.Devices.is_actuator = self.is_actuator
+        response_message.device_id = self.device_id
+        response_message.type = proto_device_type
+        response_message.ip_address = self.ip
+        response_message.port = self.port
+        response_message.is_actuator = self.is_actuator
 
         response_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         response_socket.sendto(response_message.SerializeToString(), gateway_address)
@@ -107,7 +107,7 @@ class Dispositivos:
         """Método placeholder para lidar com conexões TCP. Será sobrescrito."""
         print(f"[{self.device_id}] Conexão recebida, mas nenhum handler definido.")
         conn.close()
-
+        
 
 class Atuador(Dispositivos):
     """Classe para dispositivos que recebem comandos, como postes e semáforos."""
@@ -200,3 +200,48 @@ class Continuos(Dispositivos):
             
             # Aguarda 15 segundos para a próxima leitura [cite: 24]
             time.sleep(15)
+
+class GerenrenciarCidade():
+     def iniciar_dispositivos_simulados(self):
+        """Cria e inicia múltiplos dispositivos em threads separadas.
+        enum DeviceType {
+  UNKNOWN = 0; // O valor padrão para um enum proto3 deve ser 0.
+  LIGHT_POST = 1;
+  TRAFFIC_LIGHT = 2;
+  CAMERA = 3; 
+  TEMPERATURE_SENSOR = 4;
+  AIR_QUALITY_SENSOR = 5;
+}"""
+
+        # Crie uma lista de todos os dispositivos que você quer na sua cidade
+        dispositivos_a_iniciar = [
+            Atuador(tipo='LIGHT_POST'),
+            Atuador(tipo='TRAFFIC_LIGHT'),
+            Atuador(tipo='CAMERA'),
+            Continuos(tipo='TEMPERATURE_SENSOR', data_unit="Celsius")
+        ]
+        
+        
+        threads = []
+        print("Iniciando simulação da cidade inteligente...")
+
+        for dispositivo in dispositivos_a_iniciar:
+            thread = threading.Thread(target=dispositivo.iniciar)
+            threads.append(thread)
+            thread.start()
+        
+        print(f"\n{len(dispositivos_a_iniciar)} dispositivos foram iniciados em threads separadas.")
+        print("O gateway agora pode iniciar o processo de descoberta.")
+        print("Pressione Ctrl+C neste terminal para parar a simulação (pode ser necessário pressionar várias vezes).")
+
+        try:
+            for t in threads:
+                t.join() # Espera cada thread terminar (nunca acontecerá com loops infinitos)
+        except KeyboardInterrupt:
+            print("\nSimulação principal encerrada.")
+
+if __name__=='__main__':
+   try: 
+    GerenrenciarCidade().iniciar_dispositivos_simulados()
+   except KeyboardInterrupt:
+       pass 
