@@ -1,4 +1,3 @@
-# gateway.py
 from protos import messages_pb2 
 from protocols import tcp, udp, multicast
 import threading
@@ -161,8 +160,6 @@ class Gateway():
     def falsetrue(self,valor):
         return valor.lower() == 'true'
          
-# ... (outros métodos do gateway como 'listarDispositivos' etc. podem ficar aqui) ...
-
 if __name__ == "__main__":
     gw = Gateway()
     gw.start()
