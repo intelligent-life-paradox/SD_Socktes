@@ -103,11 +103,7 @@ class Dispositivos:
         response_socket.close()
         print(f"[{self.device_id}] Anúncio enviado para o Gateway.")
         
-    def handle_connection(self, conn):
-        """Método placeholder para lidar com conexões TCP. Será sobrescrito."""
-        print(f"[{self.device_id}] Conexão recebida, mas nenhum handler definido.")
-        conn.close()
-        
+          
 
 class Atuador(Dispositivos):
     """Classe para dispositivos que recebem comandos, como postes e semáforos."""
@@ -123,12 +119,24 @@ class Atuador(Dispositivos):
             if data:
                 command_msg = messages_pb2.SmartCityMessage()
                 command_msg.ParseFromString(data)
-
+                print('Dados recebidos --> ', command_msg.ParseFromString(data))
+                print(type(command_msg.HasField("command")))
                 if command_msg.HasField("command"):
+                    print('Entrou aqui!')
                     command = command_msg.command
+                    print(command)
+                    print('Passou aqui') 
                     self.estado = command.state # Atualiza o estado
-                    print(f"[{self.device_id}] Comando recebido: {'Ligar' if self.estado else 'Desligar'}")
-                    print(f"[{self.device_id}] Novo estado: {'Ligado' if self.estado else 'Desligado'}")
+                    msg1 = f"[{self.device_id}] Comando recebido: {'Ligar' if self.estado else 'Desligar'}"
+                    msg2 = f"[{self.device_id}] Novo estado: {'Ligado' if self.estado else 'Desligado'}"
+                    print('Enviou aqui') 
+                    response_message = f"{msg1}\n{msg2}"
+                    
+                    # CORREÇÃO PRINCIPAL: Use .encode('utf-8') para converter a string em bytes
+                    conn.sendall(response_message.encode('utf-8'))
+                    
+                    print(f"[{self.device_id}] Resposta enviada ao cliente.")
+
         except Exception as e:
             print(f"[{self.device_id}] Erro ao processar comando: {e}")
         finally:
@@ -243,5 +251,6 @@ class GerenrenciarCidade():
 if __name__=='__main__':
    try: 
     GerenrenciarCidade().iniciar_dispositivos_simulados()
+
    except KeyboardInterrupt:
        pass 

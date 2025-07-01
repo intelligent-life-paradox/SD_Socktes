@@ -5,25 +5,24 @@ from protos import messages_pb2
 GATEWAY_IP = '127.0.0.1'
 GATEWAY_TCP_PORT = 5009
 
-def enviar_comando_para_gateway(comando, tipo= None ):
+def enviar_comando_para_gateway(comando, tipo= None, ligar = None, consultar = None):
     """
     Função que abre uma conexão, envia um comando e retorna a resposta.
     """
-    if tipo is not None:
+    if tipo is not None and ligar is None:
         comando = str(comando) + ";" + str(tipo)
-    # Usa 'with' para garantir que o socket seja sempre fechado
+    elif ligar is not None:
+        comando = str(comando) + ";" + str(tipo) + ';' + str(ligar)
+    elif ligar is not None and consultar is not None:
+        comando = str(comando) + ";" + str(tipo) + ';' + str(consultar)
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((GATEWAY_IP, GATEWAY_TCP_PORT))
             
-            # Envia o comando que recebemos como argumento
             s.sendall(comando.encode('utf-8'))
             
-            # Espera por uma resposta (aumentar o buffer é uma boa prática)
             resposta = s.recv(4096)
-            print(resposta)
-            return resposta
-            
+            return resposta            
     except ConnectionRefusedError:
         return "ERRO: Não foi possível conectar ao Gateway. Ele está online?"
     except Exception as e:
@@ -42,28 +41,44 @@ def menu_principal():
       [3] Listar todos os dispositivos online
       [x] Sair
       ''')
-        
-        input_usuario = input('Digite a opção desejada: ').lower().strip()
-        
-        if input_usuario == '1':
-            dispositivo = input('Selecione o tipo de dispositivo a ser ligado (1=Poste, 2=Camera, 3=Semaforo): ').lower().strip()
-            comando = 'LIGAR_DISPOSITIVO'
-   
-            tipo_map = {
+        tipo_map = {
                 '1': messages_pb2.DeviceType.LIGHT_POST,
                 '2': messages_pb2.DeviceType.TRAFFIC_LIGHT,
                 '3': messages_pb2.DeviceType.CAMERA
             }
+        input_usuario = input('Digite a opção desejada: ').lower().strip()
+        
+        if input_usuario == '1':
+            dispositivo = input('Selecione o tipo de dispositivo a ser ligado (1=Poste, 2=Camera, 3=Semaforo): ').lower().strip()
+            ligar = input(r'Ligar[1]\Desligar[0]: ').lower().strip()
+            
+            if ligar == '0':
+                ligar = False
+            else:
+                ligar = True
 
+            comando = 'LIGAR_DISPOSITIVO'
+       
             if dispositivo in tipo_map:
                 tipo = tipo_map[dispositivo]
                 print(f"Enviando comando para ligar o tipo: {messages_pb2.DeviceType.Name(tipo)}")
-                resposta_do_servidor = enviar_comando_para_gateway(comando, tipo)
+                resposta_do_servidor = enviar_comando_para_gateway(comando, tipo, ligar)
                 print(f"Resposta do Gateway: {resposta_do_servidor.decode('utf-8')}")
             else:
                 print("Tipo de dispositivo inválido.")
-
-        elif input_usuario == '3': # A opção de listar é a 3 no seu menu
+        elif input_usuario == '2': 
+            dispositivo = input('Selecione o dispositivo a ser consultado(1=Poste, 2=Camera, 3=Semaforo : ').lower().strip()
+            comando = 'CONSULTAR_DISPOSITIVO'
+            resposta_do_servidor = enviar_comando_para_gateway(comando)
+            consultar = '1'
+            if dispositivo in tipo_map:
+                tipo = tipo_map[dispositivo]
+                print(f"Enviando comando para consultar estado  {messages_pb2.DeviceType.Name(tipo)}")
+                resposta_do_servidor = enviar_comando_para_gateway(comando, tipo, ligar =None, consultar = consultar)
+                print(f"Resposta do Gateway: {resposta_do_servidor.decode('utf-8')}")
+            else:
+                print("Tipo de dispositivo inválido.")
+        elif input_usuario == '3':
             comando = "LISTAR_DISPOSITIVOS" 
             print("\nSolicitando lista de dispositivos ao Gateway...")
             resposta_do_servidor = enviar_comando_para_gateway(comando)

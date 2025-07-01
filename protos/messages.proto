@@ -31,6 +31,10 @@ message Command {
   // Poderia ser estendido com mais campos, como "cor", "intensidade", etc.
 }
 
+// comando para consultar estado do dispositivo
+message Query {
+  bool status = 2;
+}
 // 3. Mensagem para enviar dados de um sensor.
 // Usada por um sensor para enviar leituras contínuas ao gateway.
 // Corresponde ao método `start_sending_data` da classe `Continuos`.

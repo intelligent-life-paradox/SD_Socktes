@@ -6,9 +6,6 @@ c = os.path.abspath(os.curdir)
 sys.path.insert(0, c)
 from protos import messages_pb2
 
-#from interface import obter_dados_sensores
-
-#comando:  python simpleudpclient.py "msg"
 class UDP():
     def __init__(self, ip, porta):
         self.ip = ip

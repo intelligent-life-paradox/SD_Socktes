@@ -35,7 +35,6 @@ class Gateway():
             # Mantém o thread principal vivo, esperando pelo encerramento
             while True:
                 time.sleep(5)
-                #print(self.multicastServer.getDevices())
         except KeyboardInterrupt:
             print("\nEncerrando o Gateway...")
     
@@ -47,69 +46,94 @@ class Gateway():
         print(f"[Gateway] Lidando com o comando de {client_address}")
         try:
             command = client_socket.recv(1024).decode('utf-8').strip()
-            
-            # --- MUDANÇA AQUI: SIMPLIFIQUE O PARSE DO COMANDO ---
             parts = command.split(';')
             main_command = parts[0]
             
-            resposta_para_fcliente = "OK" # Resposta padrão de sucesso
-
+            resposta_para_cliente = "ERRO: Comando não processado."
+            print(parts)
             if main_command == 'LIGAR_DISPOSITIVO' and len(parts) > 1:
                 tipo_dispositivo = int(parts[1])
-                print(f'Comando para ligar dispositivo do tipo: {tipo_dispositivo}')
+                ligar = self.falsetrue(parts[2])
+                print(f'Comando para ligar/desligar dispositivo do tipo: {tipo_dispositivo}')
                 
-                device_info = self.encontraDispositivo(tipo_dispositivo)
-                               
-                try:
-                    # Chame um novo método para enviar o comando para o dispositivo encontrado
-                    success = self.send_command_to_device(device_info[0], ligar=True)
-                    if not success:
-                        resposta_para_cliente = "ERRO: Falha ao enviar comando para o dispositivo."
-                    resposta_para_cliente = f'Dispostivo {device_info[0].device_id} ligado'   
-                except:
+                device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
+                
+                if device_info_tuple:
+                    # Agora, esta função retorna a resposta do dispositivo ou None em caso de falha.
+                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], ligar)
+                    
+                    if resposta_do_dispositivo:
+                        # Repassa a resposta do dispositivo diretamente para o cliente
+                        resposta_para_cliente = resposta_do_dispositivo
+                    else:
+                        resposta_para_cliente = f"ERRO: Falha ao se comunicar com o dispositivo {device_info_tuple[0].device_id}."
+                else:
                     resposta_para_cliente = f"ERRO: Nenhum dispositivo do tipo {tipo_dispositivo} encontrado."
-                
-                client_socket.sendall(resposta_para_cliente.encode('utf-8'))
-
+            
+            elif main_command == 'CONSULTAR_DISPOSITIVO':
+                tipo_dispositivo = int(parts[1])
+                consultar = self.falsetrue(parts[2])
+                device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
+                if device_info_tuple:
+                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], consultar)
             elif main_command == "LISTAR_DISPOSITIVOS":
-                res = self.listarDispositivos(self.multicastServer.getDevices()) # Não precisa passar o argumento aqui
-                client_socket.sendall(res.encode('utf-8'))
-                 
+                resposta_para_cliente = self.listarDispositivos(self.multicastServer.getDevices())
+            
             else:
-                client_socket.sendall(b"ERRO: Comando desconhecido.")
+                resposta_para_cliente = "ERRO: Comando desconhecido."
+
+            client_socket.sendall(resposta_para_cliente.encode('utf-8'))
         
         except Exception as e:
             print(f"[Gateway] Erro ao processar cliente: {e}")
         finally:
             client_socket.close()
 
-    def send_command_to_device(self, device_info, ligar=True):
+
+    def send_command_to_device(self, device_info, ligar=True, consultar = None):
         """
-        Conecta-se a um dispositivo específico via TCP e envia um comando.
+        Conecta-se a um dispositivo, envia um comando, ESPERA PELA RESPOSTA
+        e a retorna.
         """
         try:
-            # Pega o IP e a porta do dispositivo que descobrimos
             device_ip = device_info.ip_address
             device_port = device_info.port
 
-            print(f"Tentando conectar ao dispositivo {device_info.device_id} em {device_ip}:{device_port}...")
-
-            command_payload = messages_pb2.Command(state=ligar)
-            message_to_send = messages_pb2.SmartCityMessage(command=command_payload)
-            
-            # Serializa a mensagem para enviar
+            print(f"Gateway: Conectando ao dispositivo {device_info.device_id} em {device_ip}:{device_port}...")
+            if consultar is not None:
+                command_payload = messages_pb2.Query(status= consultar)
+                message_to_send = messages_pb2.SmartCityMessage(command=command_payload)
+            else:
+                command_payload = messages_pb2.Command(state=ligar)
+                message_to_send = messages_pb2.SmartCityMessage(command=command_payload)
             serialized_message = message_to_send.SerializeToString()
 
-            # Cria um NOVO socket para falar com o dispositivo
+            # O `with` ainda é bom para garantir o fechamento, mas agora faremos mais coisas dentro dele
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(5) # Adiciona um timeout para não travar indefinidamente
                 s.connect((device_ip, device_port))
+                
+                print(f"Gateway: Enviando comando para {device_info.device_id}.")
                 s.sendall(serialized_message)
-                print(f"Comando enviado com sucesso para {device_info.device_id}.")
-            return True
+                
+                print(f"Gateway: Aguardando resposta de {device_info.device_id}...")
+                response_bytes = s.recv(1024)
+                
+                if not response_bytes:
+                    print(f"Gateway: Dispositivo {device_info.device_id} fechou a conexão sem resposta.")
+                    return None
+                    
+                response_str = response_bytes.decode('utf-8')
+                print(f"Gateway: Resposta recebida de {device_info.device_id}:\n{response_str}")
 
+                return response_str # Retorna a resposta decodificada
+        
+        except socket.timeout:
+            print(f"ERRO: Timeout ao esperar resposta do dispositivo {device_info.device_id}.")
+            return None
         except Exception as e:
             print(f"ERRO ao se comunicar com o dispositivo {device_info.device_id}: {e}")
-            return False
+            return None
         
     def listarDispositivos(self, dispositivos):
          linhas_resposta = "--- Dispositivos Online ---\n"
@@ -132,7 +156,11 @@ class Gateway():
                 print(device_info)
                 print(f"Dispositivo encontrado: {device_info}")
                 return device_info # Retorna o objeto completo
-        return None # Retorna None se não encontrar        
+        return None # Retorna None se não encontrar
+    
+    def falsetrue(self,valor):
+        return valor.lower() == 'true'
+         
 # ... (outros métodos do gateway como 'listarDispositivos' etc. podem ficar aqui) ...
 
 if __name__ == "__main__":
