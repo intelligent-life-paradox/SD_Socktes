@@ -1,78 +1,67 @@
-import socket
-import time
-from protos import messages_pb2 
-# O endereço público do Gateway - a única coisa que o cliente precisa saber.
-GATEWAY_IP = '127.0.0.1'
-GATEWAY_TCP_PORT = 5009
+from protocols import tcp
+import json
+import protos.protocol as protoBuffer
 
-def enviar_comando_para_gateway(comando, tipo= None ):
-    """
-    Função que abre uma conexão, envia um comando e retorna a resposta.
-    """
-    if tipo is not None:
-        comando = str(comando) + ";" + str(tipo)
-    # Usa 'with' para garantir que o socket seja sempre fechado
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((GATEWAY_IP, GATEWAY_TCP_PORT))
-            
-            # Envia o comando que recebemos como argumento
-            s.sendall(comando.encode('utf-8'))
-            
-            # Espera por uma resposta (aumentar o buffer é uma boa prática)
-            resposta = s.recv(4096)
-            print(resposta)
-            return resposta
-            
-    except ConnectionRefusedError:
-        return "ERRO: Não foi possível conectar ao Gateway. Ele está online?"
-    except Exception as e:
-        return f"ERRO: Ocorreu um erro inesperado: {e}"
+print("### CONTROLE DE COMANDOS ###")
 
-
-def menu_principal():
-    print("### CONTROLE DA CIDADE INTELIGENTE ###")
-    while True:
-        print('''
-      [1] Ligar/Desligar um dispositivo
-            (1) Poste
-            (2) Câmera
-            (3) Semáforo
-      [2] Consultar Estado dos Dispositivos        
-      [3] Listar todos os dispositivos online
-      [x] Sair
+print('''
+      Escolha uma opção para conseguir controlar os dispositivos
+      [1] Ligar/|Desligar Poste 
+      [2] Mudar configuração de câmera
+        - Alterar para FullHD
+        - Alterar para HD
+      [3] Mudar configuração de semáfaro
+        - Alterar tempo de permanência como fechado
+      [X] Sair da aplicação
       ''')
-        
-        input_usuario = input('Digite a opção desejada: ').lower().strip()
-        
-        if input_usuario == '1':
-            dispositivo = input('Selecione o tipo de dispositivo a ser ligado (1=Poste, 2=Camera, 3=Semaforo): ').lower().strip()
-            comando = 'LIGAR_DISPOSITIVO'
-   
-            tipo_map = {
-                '1': messages_pb2.DeviceType.LIGHT_POST,
-                '2': messages_pb2.DeviceType.TRAFFIC_LIGHT,
-                '3': messages_pb2.DeviceType.CAMERA
-            }
+protocol = tcp.TCP('localhost',6789) # abre uma instância tcp
+protobuf = protoBuffer.ProtoBuf()
+''' 
+serializable = ProtoBuf().marshalling('localhost', '3',12345,'msg',True,'TCP')
+print(ProtoBuf().unmarshalling(serializable))'''
+while True:
+    input_usuario = input('Digite a opção desejada: ').lower() 
+    cliente = protocol.Cliente(input_usuario)
+    
+    if input_usuario == '1':
+        id_poste = input('Digite o ID do poste(número inteiro): ')
+        acao= input('Digite a ação desejada (ligar/desligar): ').lower()
+        if acao in ['ligar', 'desligar']:
+            comando = {
+                'id_poste': id_poste,
+                'acao': acao}
+            
+            cliente.sendall(json.dumps(comando).encode('utf-8'))
+            resposta = cliente.recv(1024).decode('utf-8')
+            print(f'Resposta do servidor: {resposta}')
+        else:
+            print('Ação inválida. Tente novamente.')
+    elif input_usuario == '2':
+        id_camera = input('Digite o ID da câmera(número inteiro): ')
+        resolucao = input('Digite a resolução desejada (FullHD/HD): ').lower()
+        if resolucao in ['fullhd', 'hd']:
+            comando = {
+                'id_camera': id_camera,
+                'resolucao': resolucao}
+            cliente.sendall(json.dumps(comando).encode('utf-8'))
+            resposta = cliente.recv(1024).decode('utf-8')
+            print(f'Resposta do servidor: {resposta}')
+        else:
+            print('Resolução inválida. Tente novamente.')
+    elif input_usuario == '3':
+        id_semaforo=input('Digite o ID do semáforo(número inteiro): ')
+        tempo = input('Digite o tempo de permanência fechado (em segundos): ')
+        if tempo.isdigit():
+            
+            comando = {'id_semaforo': id_semaforo, 'tempo_fechado': tempo}
+            cliente.sendall(json.dumps(comando).encode('utf-8'))
+            resposta = cliente.recv(1024).decode('utf-8')
+            print(f'Resposta do servidor: {resposta}')
+        else:
+            print('Tempo inválido. Tente novamente.')
+    elif input_usuario == 'x':
+        print('Saindo da aplicação...')
+        break
+           
 
-            if dispositivo in tipo_map:
-                tipo = tipo_map[dispositivo]
-                print(f"Enviando comando para ligar o tipo: {messages_pb2.DeviceType.Name(tipo)}")
-                resposta_do_servidor = enviar_comando_para_gateway(comando, tipo)
-                print(f"Resposta do Gateway: {resposta_do_servidor.decode('utf-8')}")
-            else:
-                print("Tipo de dispositivo inválido.")
-
-        elif input_usuario == '3': # A opção de listar é a 3 no seu menu
-            comando = "LISTAR_DISPOSITIVOS" 
-            print("\nSolicitando lista de dispositivos ao Gateway...")
-            resposta_do_servidor = enviar_comando_para_gateway(comando)
-            # A resposta já vem como bytes, então decodifique-a
-            print("--- Resposta do Gateway ---")
-            print(resposta_do_servidor.decode('utf-8'))
-            print("---------------------------\n")
-
-        elif input_usuario == 'x':
-            break
-if __name__ == "__main__":
-    menu_principal()
+            
