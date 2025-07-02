@@ -1,101 +1,46 @@
 import socket
+import struct
+import time
 from protos import messages_pb2
-class Mulicast():    
-    
+
+class Mulicast:
     def __init__(self):
         self.MCAST_GROUP = '224.1.1.1'
         self.MCAST_PORT = 5007
-        self.msg = b'SERVICO_DISCOVERY_REQUEST' # precisa ser em protobuffer
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.lista_ips_descobertos = []
-    
-            
+        # A mensagem de descoberta também deve ser um Protobuf
+        self.discovery_request_msg = messages_pb2.SmartCityMessage() # Mensagem vazia, só para protocolo
+        
+        # O único lugar para armazenar dispositivos. A chave é o device_id.
+        self.discovered_devices = {} 
+
     def getDevices(self):
-        return self.lista_ips_descobertos
-    
-    def Client(self):
+        return list(self.discovered_devices.values())
 
-        self.sock.settimeout(5.0)
-
-        self.sock.sendto(self.msg, (self.MCAST_GROUP,self.MCAST_PORT ))
-
-        lista_ips_descobertos = [] # estes caras vão vir como protobuffer
-        
-        while True:
-            try:
-                dados, endereco_servidor = self.sock.recvfrom(1024)
-                print(f"\nRecebi um resposta de {endereco_servidor}")
-                resposta = dados.decode('utf-8')
-                print(f'-> Mensagem: {resposta}')
-
-                partes = resposta.split(';')
-                if partes[0]=='SERVICE_RESPONSE':
-                    servico_info = {'nome': partes[1], 'ip': partes[2], 'porta': endereco_servidor[1]}
-                    print(f"  -> Serviço válido encontrado: {servico_info['nome']} no IP {servico_info['ip']}")
-                    lista_ips_descobertos.append(servico_info)
-                    
-            except socket.timeout:
-                # Se o tempo esgotou, o loop termina
-                print("\nTempo de busca esgotado. A busca terminou.")
-                break
-            except Exception as e:
-                print(f"Ocorreu um erro: {e}")
-                break
-
-
-        print("\n--- Resultado da Descoberta ---")
-        if not lista_ips_descobertos:
-            print("Nenhum serviço foi encontrado.")
-        else:
-            print(f"Total de serviços encontrados: {len(lista_ips_descobertos)}")
-            for servico in lista_ips_descobertos:
-                print(f"  - Nome: {servico['nome']}, Endereço: {servico['ip']}:{servico['porta']}")
-
-        self.sock.close()
-    def Server(self):
-        # --- Configurações Comuns ---
-        MCAST_GROUP = '224.1.1.1'
-        MCAST_PORT = 5007
-        SERVICE_NAME = "MeuServicoLegal-01"
-        DISCOVERY_REQUEST_MSG = b'SERVICO_DISCOVERY_REQUEST' # Mensagem que o cliente envia
-
-        print(f"Iniciando o serviço '{SERVICE_NAME}'...")
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ttl = 10       
-        # Adiciona o timeout para que o socket não bloqueie para sempre (Corrige Ctrl+C)
-        sock.settimeout(1.0)
-
-        # 2. Liga o socket à porta e a todas as interfaces
-        
-        print(f"Serviço escutando na porta {MCAST_PORT}") # Corrigido para mostrar a porta
-                 
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-
-        sock.sendto(b'Tem alguem ai?', (MCAST_GROUP, MCAST_PORT))
-
-        print(f"Serviço juntou-se ao grupo multicast {MCAST_GROUP}. Aguardando descobertas...")
-        print("(Pressione Ctrl+C para sair)")
-
-        # 4. Loop principal para escutar e responder
-        while True:
-            try:
-                # Tenta receber dados (com timeout de 1s)
-                dados, endereco_cliente = sock.recvfrom(1024)
-                self.lista_ips_descobertos.append((messages_pb2.DeviceInfo.FromString(dados), endereco_cliente))
-                #print(self.lista_ips_descobertos)
-           
-            except socket.timeout:
-                # Timeout é esperado, apenas continue o loop
-                continue
+    def add_or_update_device(self, device_info, addr):
+        if not isinstance(device_info, messages_pb2.DeviceInfo):
+            print(f"[Multicast] Erro: Tentativa de adicionar um objeto que não é DeviceInfo.")
+            return
             
-            except KeyboardInterrupt:
-                print("\nServiço encerrado pelo usuário.")
-                break
-                
-            except Exception as e:
-                print(f'Ocorreu um erro: {e}')
+        print(f"[Multicast] Dispositivo '{device_info.device_id}' adicionado/atualizado da fonte {addr}.")
+        self.discovered_devices[device_info.device_id] = (device_info, addr)
 
-        # Limpeza final
-        print("Fechando o socket.")
-        sock.close()
+    def Server(self):
+        """
+        Este é o único método que o Gateway deve iniciar em uma thread.
+        Ele envia 'pings' de descoberta periodicamente. A resposta é tratada
+        pelo servidor UDP principal do Gateway.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        
+        print(f"[Multicast] Iniciando envio de pings de descoberta para {self.MCAST_GROUP}:{self.MCAST_PORT}")
+
+        while True:
+            try:
+                # Envia a mensagem de descoberta
+                sock.sendto(self.discovery_request_msg.SerializeToString(), (self.MCAST_GROUP, self.MCAST_PORT))
+                # Aguarda 10 segundos para o próximo ping
+                time.sleep(10)
+            except Exception as e:
+                print(f"[Multicast] Erro ao enviar ping de descoberta: {e}")
+                time.sleep(10) # Evita loop de erro rápido

@@ -1,28 +1,32 @@
+# gateway.py (Versão Limpa e Corrigida)
+
 from protos import messages_pb2 
 from protocols import tcp, udp, multicast
 import threading
 import time
 import socket
+
 class Gateway():
     def __init__(self):
        # Suas inicializações de servidor
        self.tcpServer = tcp.TCPServer('localhost', 5009, handler_function=self.handle_client_command)
-       self.udpServer = udp.UDP('localhost', 5008)
+       self.udpServer = udp.UDP('0.0.0.0', 5008)
        self.multicastServer = multicast.Mulicast()
-       # Adicione um dicionário para manter os dispositivos descobertos
+       
        self.discovered_devices = {}
 
     def start(self):
         """Inicia todos os serviços do gateway e os mantém rodando."""
         print("Gateway iniciando todos os serviços...")
         
-        # Iniciar os servidores em threads "daemon" para que eles fechem
-        # quando o programa principal terminar.
+        # Thread para o servidor TCP que lida com os comandos do cliente
         tcp_thread = threading.Thread(target=self.tcpServer.Server, daemon=True)
-        udp_thread = threading.Thread(target=self.udpServer.Server, daemon=True)
         
-        # A descoberta pode ser uma função que roda uma vez ou continuamente
-        # Vamos supor que ela roda continuamente para descobrir novos dispositivos
+        # Thread para o servidor UDP, que recebe anúncios de TODOS os dispositivos
+        # Passamos a função 'handle_udp_packet' para ser o "cérebro" do servidor UDP
+        udp_thread = threading.Thread(target=self.udpServer.Server, args=(self.handle_udp_packet,), daemon=True)
+        
+        # Thread para o servidor Multicast, que só envia os "pings" de descoberta
         discovery_thread = threading.Thread(target=self.multicastServer.Server, daemon=True)
 
         tcp_thread.start()
@@ -31,16 +35,83 @@ class Gateway():
         
         print("Gateway está online. Pressione Ctrl+C para sair.")
         try:
-            # Mantém o thread principal vivo, esperando pelo encerramento
             while True:
-                time.sleep(5)
+                time.sleep(10) # Pausa o loop principal, as threads cuidam do trabalho
         except KeyboardInterrupt:
             print("\nEncerrando o Gateway...")
+
+    def handle_udp_packet(self, data, addr):
+        """
+        Processa pacotes UDP recebidos. Esta é a porta de entrada para anúncios de dispositivos.
+        """
+        # Tenta decodificar como SmartCityMessage (padrão para Node.js e Python corrigido)
+        try:
+            message = messages_pb2.SmartCityMessage()
+            message.ParseFromString(data)
+            
+            if message.HasField("devices"):
+                device_info = message.devices
+                print(f"[Gateway UDP] Anúncio envelopado recebido de {addr}: ID={device_info.device_id}")
+                self.discovered_devices[device_info.device_id] = (device_info, addr)
+                print(f"[Gateway] Dispositivo '{device_info.device_id}' adicionado/atualizado.")
+                return
+
+            elif message.HasField("sensor_data"):
+                sensor_data = message.sensor_data
+                print(f"[Gateway UDP] Dados de sensor de {sensor_data.device_id}: {sensor_data.value} {sensor_data.unit}")
+                return
+
+        except Exception:
+            # Se falhou, pode ser um DeviceInfo "cru" (do dispositivo Python antigo)
+            try:
+                device_info = messages_pb2.DeviceInfo()
+                device_info.ParseFromString(data)
+                print(f"[Gateway UDP] Anúncio 'cru' (compatibilidade) recebido de {addr}: ID={device_info.device_id}")
+                self.discovered_devices[device_info.device_id] = (device_info, addr)
+                print(f"[Gateway] Dispositivo '{device_info.device_id}' adicionado/atualizado.")
+            except Exception as e:
+                print(f"[Gateway UDP] Pacote de {addr} não pôde ser decodificado: {e}")
+
+    # --- FUNÇÕES MODIFICADAS PARA USAR A LISTA UNIFICADA ---
+
+    def listarDispositivos(self):
+        """
+        CORRIGIDO: Lista os dispositivos do dicionário principal `self.discovered_devices`.
+        """
+        dispositivos = list(self.discovered_devices.values())
+        
+        if not dispositivos:
+            return "--- Dispositivos Online ---\nNenhum dispositivo encontrado."
+
+        linhas_resposta = "--- Dispositivos Online ---\n"
+        # Cada item 'd' é uma tupla (device_info_obj, addr)
+        for device_info_obj, addr in dispositivos:
+           linhas_resposta += f'{device_info_obj.device_id}\n'
+        return linhas_resposta
     
+    def encontraDispositivo(self, tipo_int):
+        """
+        CORRIGIDO: Procura no dicionário principal `self.discovered_devices`.
+        """
+        # Itera sobre os valores (tuplas) do dicionário
+        for device_info_obj, addr in self.discovered_devices.values():
+            if device_info_obj.type == tipo_int:
+                print(f"Dispositivo do tipo '{messages_pb2.DeviceType.Name(tipo_int)}' encontrado: {device_info_obj.device_id}")
+                # Retorna a tupla completa (device_info, addr)
+                return (device_info_obj, addr)
+        
+        print(f"Nenhum dispositivo do tipo '{messages_pb2.DeviceType.Name(tipo_int)}' foi encontrado.")
+        return None
+
+    # --- O RESTO DO CÓDIGO PERMANECE IGUAL ---
+    # As funções abaixo não precisam de NENHUMA MUDANÇA, pois elas já usam as versões
+    # corrigidas de 'listarDispositivos' e 'encontraDispositivo'.
+
     def handle_client_command(self, client_socket, client_address):
         """
-        Este é o handler! Ele é chamado pelo TCPServer para cada cliente.
+        Este handler NÃO MUDA. Ele lida com os comandos do cliente TCP.
         """
+        # ... (seu código de handle_client_command, sem nenhuma alteração) ...
         print(f"[Gateway] Lidando com o comando de {client_address}")
         try:
             command = client_socket.recv(1024).decode('utf-8').strip()
@@ -52,19 +123,10 @@ class Gateway():
             if main_command == 'LIGAR_DISPOSITIVO':
                 tipo_dispositivo = int(parts[1])
                 ligar = self.falsetrue(parts[2])
-                print(f'Comando para ligar/desligar dispositivo do tipo: {tipo_dispositivo}')
-                
                 device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
-                
                 if device_info_tuple:
-                    # Agora, esta função retorna a resposta do dispositivo ou None em caso de falha.
-                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], ligar=  ligar)
-                    
-                    if resposta_do_dispositivo:
-                        # Repassa a resposta do dispositivo diretamente para o cliente
-                        resposta_para_cliente = resposta_do_dispositivo
-                    else:
-                        resposta_para_cliente = f"ERRO: Falha ao se comunicar com o dispositivo {device_info_tuple[0].device_id}."
+                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], ligar=ligar)
+                    resposta_para_cliente = resposta_do_dispositivo if resposta_do_dispositivo else f"ERRO: Falha ao comunicar com {device_info_tuple[0].device_id}."
                 else:
                     resposta_para_cliente = f"ERRO: Nenhum dispositivo do tipo {tipo_dispositivo} encontrado."
             
@@ -73,11 +135,13 @@ class Gateway():
                 consultar = self.falsetrue(parts[2])
                 device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
                 if device_info_tuple:
-                    print('Entrou no envio!! ')
-                    resposta_para_cliente = self.send_command_to_device(device_info_tuple[0], consultar= consultar)
-            
+                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], consultar=consultar)
+                    resposta_para_cliente = resposta_do_dispositivo if resposta_do_dispositivo else f"ERRO: Falha ao comunicar com {device_info_tuple[0].device_id}."
+                else:
+                    resposta_para_cliente = f"ERRO: Nenhum dispositivo do tipo {tipo_dispositivo} encontrado."
+
             elif main_command == "LISTAR_DISPOSITIVOS":
-                resposta_para_cliente = self.listarDispositivos(self.multicastServer.getDevices())
+                resposta_para_cliente = self.listarDispositivos()
             
             else:
                 resposta_para_cliente = "ERRO: Comando desconhecido."
@@ -89,46 +153,32 @@ class Gateway():
         finally:
             client_socket.close()
 
-
-    def send_command_to_device(self, device_info, ligar=True, consultar = None):
+    def send_command_to_device(self, device_info, ligar=True, consultar=None):
         """
-        Conecta-se a um dispositivo, envia um comando, ESPERA PELA RESPOSTA
-        e a retorna.
+        Esta função NÃO MUDA. Ela envia comandos para os atuadores.
         """
+        # ... (seu código de send_command_to_device, sem nenhuma alteração) ...
         try:
             device_ip = device_info.ip_address
             device_port = device_info.port
-
             print(f"Gateway: Conectando ao dispositivo {device_info.device_id} em {device_ip}:{device_port}...")
+            
             if consultar is not None:
                 command_payload = messages_pb2.Query(status=consultar)
                 message_to_send = messages_pb2.SmartCityMessage(query=command_payload)
-                
             else:
                 command_payload = messages_pb2.Command(state=ligar)
                 message_to_send = messages_pb2.SmartCityMessage(command=command_payload)
 
             serialized_message = message_to_send.SerializeToString()
-
-            # O `with` ainda é bom para garantir o fechamento, mas agora faremos mais coisas dentro dele
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(5) # Adiciona um timeout para não travar indefinidamente
+                s.settimeout(5)
                 s.connect((device_ip, device_port))
-                
-                print(f"Gateway: Enviando comando para {device_info.device_id}.")
                 s.sendall(serialized_message)
-                
-                print(f"Gateway: Aguardando resposta de {device_info.device_id}...")
                 response_bytes = s.recv(1024)
-                
                 if not response_bytes:
-                    print(f"Gateway: Dispositivo {device_info.device_id} fechou a conexão sem resposta.")
                     return None
-                    
-                response_str = response_bytes.decode('utf-8')
-                print(f"Gateway: Resposta recebida de {device_info.device_id}:\n{response_str}")
-
-                return response_str # Retorna a resposta decodificada
+                return response_bytes.decode('utf-8')
         
         except socket.timeout:
             print(f"ERRO: Timeout ao esperar resposta do dispositivo {device_info.device_id}.")
@@ -137,30 +187,10 @@ class Gateway():
             print(f"ERRO ao se comunicar com o dispositivo {device_info.device_id}: {e}")
             return None
         
-    def listarDispositivos(self, dispositivos):
-         linhas_resposta = "--- Dispositivos Online ---\n"
-         for d in dispositivos:
-           linhas_resposta+= f'{d[0].device_id}\n'
-         return linhas_resposta
-    
-    
-    # Remova o método ligarDispositivo, ele será substituído por send_command_to_device
-
-    def encontraDispositivo(self, tipo_int):
-        """
-        Encontra o primeiro dispositivo de um certo tipo e retorna seu objeto DeviceInfo.
-        """
-        dispositivos = self.multicastServer.getDevices()
-        for device_info in dispositivos:
-            print(f'{device_info[0].device_id} -->{device_info[0].type}')
-            if device_info[0].type == tipo_int:
-                print(f"Dispositivo encontrado: {device_info}")
-                return device_info # Retorna o objeto completo
-        return None # Retorna None se não encontrar
-    
-    def falsetrue(self,valor):
+    def falsetrue(self, valor):
+        """Esta função NÃO MUDA."""
         return valor.lower() == 'true'
-         
+
 if __name__ == "__main__":
     gw = Gateway()
     gw.start()

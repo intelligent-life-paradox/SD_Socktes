@@ -86,20 +86,31 @@ class Dispositivos:
 
     def send_announcement(self, gateway_address):
         """Envia a mensagem de anúncio (Protocol Buffers) para o Gateway."""
-        response_message = messages_pb2.DeviceInfo()
+        # 1. Cria a mensagem interna com os detalhes do dispositivo
+        device_info_payload = messages_pb2.DeviceInfo()
         
         proto_device_type = getattr(messages_pb2, self.tipo.upper(), messages_pb2.UNKNOWN)
 
-        response_message.device_id = self.device_id
-        response_message.type = proto_device_type
-        response_message.ip_address = self.ip
-        response_message.port = self.port
-        response_message.is_actuator = self.is_actuator
+        device_info_payload.device_id = self.device_id
+        device_info_payload.type = proto_device_type
+        device_info_payload.ip_address = self.ip
+        device_info_payload.port = self.port
+        device_info_payload.is_actuator = self.is_actuator
 
+        # 2. CRÍTICO: Cria a mensagem "envelope" e coloca o payload dentro dela
+        #    usando o nome do campo do 'oneof' ('devices')
+        response_message = messages_pb2.SmartCityMessage(devices=device_info_payload)
+
+        # 3. O gateway_address recebido do multicast é o endereço de ORIGEM do ping,
+        #    mas a resposta deve ir para a porta de DADOS do Gateway (5008).
+        gateway_ip = gateway_address[0]
+        gateway_data_port = 5008 # Porta UDP do Gateway
+        
         response_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        response_socket.sendto(response_message.SerializeToString(), gateway_address)
+        # Envia a mensagem ENVELOPADA para a porta de dados correta
+        response_socket.sendto(response_message.SerializeToString(), (gateway_ip, gateway_data_port))
         response_socket.close()
-        print(f"[{self.device_id}] Anúncio enviado para o Gateway.")
+        print(f"[{self.device_id}] Anúncio envelopado enviado para o Gateway em {gateway_ip}:{gateway_data_port}.")
 
 
 class Atuador(Dispositivos):
@@ -237,6 +248,6 @@ if __name__ == '__main__':
         try:
             GerenrenciarCidade().iniciar_dispositivos_simulados()
         except KeyboardInterrupt:
-            pass
+            print('Encerrado')
     elif entrada== '2':
         GerenrenciarCidade().iniciar_dispositivos_simulados(falha=True)        
