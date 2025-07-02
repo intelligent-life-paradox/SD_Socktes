@@ -69,7 +69,7 @@ class Dispositivos:
             self.handle_connection(conn)
 
 
-   
+    def listen_for_discovery(self):
         multicast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         multicast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         multicast_socket.bind(('', MULTICAST_PORT))
@@ -114,10 +114,12 @@ class Atuador(Dispositivos):
         try:
             data = conn.recv(1024)
             if data:
+                print(data)
                 command_msg = messages_pb2.SmartCityMessage()
                 command_msg.ParseFromString(data)
-
+                print('Recurso ...: ', command_msg , command_msg.ParseFromString(data))
                 if command_msg.HasField("command"):
+                    print('Entrou em comand')
                     command = command_msg.command
                     self.estado = command.state
                     msg1 = f"[{self.device_id}] Comando recebido: {'Ligar' if self.estado else 'Desligar'}"
@@ -125,6 +127,7 @@ class Atuador(Dispositivos):
                     response_message = f"{msg1}\n{msg2}"
 
                 elif command_msg.HasField("query"):
+                    print('Entrou em query')
                     status = "Ligado" if self.estado else "Desligado"
                     response_message = f"[{self.device_id}] Estado atual: {status}"
 

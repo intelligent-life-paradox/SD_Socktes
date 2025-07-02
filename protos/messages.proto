@@ -33,7 +33,7 @@ message Command {
 
 // comando para consultar estado do dispositivo
 message Query {
-  bool status = 2;
+  bool status = 1;
 }
 // 3. Mensagem para enviar dados de um sensor.
 // Usada por um sensor para enviar leituras contínuas ao gateway.
@@ -51,6 +51,7 @@ message SmartCityMessage {
   oneof payload {
     DeviceInfo devices = 1;     // Usado para anúncios de dispositivos
     Command command = 2;        // Usado para enviar comandos
-    SensorData sensor_data = 3; // Usado para enviar dados de sensores
+    SensorData sensor_data = 3;
+    Query query = 4;  // Usado para enviar dados de sensores
   }
 }
