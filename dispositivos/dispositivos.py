@@ -114,10 +114,9 @@ class Atuador(Dispositivos):
         try:
             data = conn.recv(1024)
             if data:
-                print(data)
                 command_msg = messages_pb2.SmartCityMessage()
                 command_msg.ParseFromString(data)
-                print('Recurso ...: ', command_msg , command_msg.ParseFromString(data))
+                
                 if command_msg.HasField("command"):
                     print('Entrou em comand')
                     command = command_msg.command

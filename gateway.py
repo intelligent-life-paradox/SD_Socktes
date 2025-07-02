@@ -48,7 +48,7 @@ class Gateway():
             main_command = parts[0]
             
             resposta_para_cliente = "ERRO: Comando não processado."
-            print(parts)
+            
             if main_command == 'LIGAR_DISPOSITIVO':
                 tipo_dispositivo = int(parts[1])
                 ligar = self.falsetrue(parts[2])
@@ -69,13 +69,12 @@ class Gateway():
                     resposta_para_cliente = f"ERRO: Nenhum dispositivo do tipo {tipo_dispositivo} encontrado."
             
             elif main_command == 'CONSULTAR_DISPOSITIVO':
-                print('entrou aqui consultar')
                 tipo_dispositivo = int(parts[1])
                 consultar = self.falsetrue(parts[2])
                 device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
                 if device_info_tuple:
                     print('Entrou no envio!! ')
-                    resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], consultar= consultar)
+                    resposta_para_cliente = self.send_command_to_device(device_info_tuple[0], consultar= consultar)
             
             elif main_command == "LISTAR_DISPOSITIVOS":
                 resposta_para_cliente = self.listarDispositivos(self.multicastServer.getDevices())
@@ -103,8 +102,8 @@ class Gateway():
             print(f"Gateway: Conectando ao dispositivo {device_info.device_id} em {device_ip}:{device_port}...")
             if consultar is not None:
                 command_payload = messages_pb2.Query(status=consultar)
-                message_to_send = messages_pb2.SmartCityMessage(command=command_payload)
-                print('command aqui!')
+                message_to_send = messages_pb2.SmartCityMessage(query=command_payload)
+                
             else:
                 command_payload = messages_pb2.Command(state=ligar)
                 message_to_send = messages_pb2.SmartCityMessage(command=command_payload)

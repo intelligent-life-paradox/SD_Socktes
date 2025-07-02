@@ -9,12 +9,13 @@ def enviar_comando_para_gateway(comando, tipo= None, ligar = None, consultar = N
     """
     Função que abre uma conexão, envia um comando e retorna a resposta.
     """
-    if tipo is not None and ligar is None:
-        comando = str(comando) + ";" + str(tipo)
+    if tipo is not None and ligar is None and consultar is None:
+        comando = f"{comando};{tipo}"
     elif ligar is not None:
-        comando = str(comando) + ";" + str(tipo) + ';' + str(ligar)
-    elif ligar is not None and consultar is not None:
-        comando = str(comando) + ";" + str(tipo) + ';' + str(consultar)
+        comando = f"{comando};{tipo};{ligar}"
+    elif consultar is not None:
+        comando = f"{comando};{tipo};{consultar}"
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((GATEWAY_IP, GATEWAY_TCP_PORT))
