@@ -108,7 +108,6 @@ class Atuador(Dispositivos):
     def __init__(self, tipo):
         super().__init__(tipo=tipo)
         self.is_actuator = True  # Define que este tipo de dispositivo é um atuador
-
     def handle_connection(self, conn):
         """Trata comandos recebidos via TCP (ligar/desligar ou consulta de estado)."""
         try:
@@ -116,7 +115,7 @@ class Atuador(Dispositivos):
             if data:
                 command_msg = messages_pb2.SmartCityMessage()
                 command_msg.ParseFromString(data)
-                
+
                 if command_msg.HasField("command"):
                     print('Entrou em comand')
                     command = command_msg.command
@@ -140,6 +139,7 @@ class Atuador(Dispositivos):
             print(f"[{self.device_id}] Erro ao processar comando: {e}")
         finally:
             conn.close()
+            
 
 
 class Continuos(Dispositivos):
@@ -195,14 +195,21 @@ class Continuos(Dispositivos):
 
 
 class GerenrenciarCidade:
-    def iniciar_dispositivos_simulados(self):
+    def iniciar_dispositivos_simulados(self, falha = False):
         """Cria e inicia múltiplos dispositivos em threads separadas."""
-        dispositivos_a_iniciar = [
-            Atuador(tipo='LIGHT_POST'),
-            Atuador(tipo='TRAFFIC_LIGHT'),
-            Atuador(tipo='CAMERA'),
-            Continuos(tipo='TEMPERATURE_SENSOR', data_unit="Celsius")
-        ]
+        if falha == False: 
+            dispositivos_a_iniciar = [
+                Atuador(tipo='LIGHT_POST'),
+                Atuador(tipo='TRAFFIC_LIGHT'),
+                Atuador(tipo='CAMERA'),
+                Continuos(tipo='TEMPERATURE_SENSOR', data_unit="Celsius")
+            ]
+        else:
+            dispositivos_a_iniciar = [
+                Atuador(tipo='LIGHT_POST'),
+                Atuador(tipo='TRAFFIC_LIGHT'),
+                Continuos(tipo='TEMPERATURE_SENSOR', data_unit="Celsius")
+            ]  
 
         threads = []
         print("Iniciando simulação da cidade inteligente...")
@@ -224,7 +231,12 @@ class GerenrenciarCidade:
 
 
 if __name__ == '__main__':
-    try:
-        GerenrenciarCidade().iniciar_dispositivos_simulados()
-    except KeyboardInterrupt:
-        pass
+    print('[1] Cenário Normal [2] Cenário de Falha')
+    entrada = input('Digite a opção que você deseja: ')
+    if entrada== '1':
+        try:
+            GerenrenciarCidade().iniciar_dispositivos_simulados()
+        except KeyboardInterrupt:
+            pass
+    elif entrada== '2':
+        GerenrenciarCidade().iniciar_dispositivos_simulados(falha=True)        

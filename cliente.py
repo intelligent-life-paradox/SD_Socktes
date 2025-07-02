@@ -36,8 +36,8 @@ def menu_principal():
         print('''
       [1] Ligar/Desligar um dispositivo
             (1) Poste
-            (2) Câmera
-            (3) Semáforo
+            (2) Semáforo
+            (3) Câmera
       [2] Consultar Estado dos Dispositivos        
       [3] Listar todos os dispositivos online
       [x] Sair
@@ -47,6 +47,11 @@ def menu_principal():
                 '2': messages_pb2.DeviceType.TRAFFIC_LIGHT,
                 '3': messages_pb2.DeviceType.CAMERA
             }
+        state_tf = {
+                '1': messages_pb2.TLState.GREEN,
+                '2': messages_pb2.TLState.YELLOW,
+                '3': messages_pb2.TLState.RED
+        }
         input_usuario = input('Digite a opção desejada: ').lower().strip()
         
         if input_usuario == '1':
@@ -63,10 +68,12 @@ def menu_principal():
             if dispositivo in tipo_map:
                 tipo = tipo_map[dispositivo]
                 print(f"Enviando comando para ligar o tipo: {messages_pb2.DeviceType.Name(tipo)}")
+
                 resposta_do_servidor = enviar_comando_para_gateway(comando, tipo, ligar)
                 print(f"Resposta do Gateway: {resposta_do_servidor.decode('utf-8')}")
             else:
                 print("Tipo de dispositivo inválido.")
+
         elif input_usuario == '2': 
             dispositivo = input('Selecione o dispositivo a ser consultado(1=Poste, 2=Camera, 3=Semaforo : ').lower().strip()
             comando = 'CONSULTAR_DISPOSITIVO'

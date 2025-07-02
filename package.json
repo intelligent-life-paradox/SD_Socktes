@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "google-protobuf": "^3.21.4",
+    "protoc-gen-ts": "^0.8.7"
+  }
+}
