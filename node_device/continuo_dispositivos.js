@@ -9,8 +9,8 @@ const messages = require(protoPath);
 
 // Configurações de Rede
 const MULTICAST_GROUP = '224.1.1.1';
-const MULTICAST_PORT = 5007; // Porta onde o Gateway "grita"
-const GATEWAY_DATA_PORT = 5008; // Porta onde o Gateway "escuta" por respostas
+const MULTICAST_PORT = 5007;
+const GATEWAY_DATA_PORT = 5008;
 
 class ContinuousDevice {
     constructor(tipoString, tipoEnum, dataUnit) {
@@ -51,7 +51,6 @@ class ContinuousDevice {
     }
     
     sendAnnouncement(gatewayInfo) {
-        // 1. Cria o payload DeviceInfo
         const deviceInfoPayload = new messages.DeviceInfo();
         deviceInfoPayload.setDeviceId(this.deviceId);
         deviceInfoPayload.setType(this.tipoEnum);
@@ -59,16 +58,13 @@ class ContinuousDevice {
         deviceInfoPayload.setIsActuator(false);
         deviceInfoPayload.setPort(0);
 
-        // 2. Cria o envelope SmartCityMessage
         const message = new messages.SmartCityMessage();
         
-        // 3. Coloca o payload dentro do envelope usando o método 'setDevices'
         message.setDevices(deviceInfoPayload); 
 
         const serializedMessage = message.serializeBinary();
         const responseSocket = dgram.createSocket('udp4');
         
-        // Envia para o IP do Gateway, na porta de DADOS (5008)
         responseSocket.send(serializedMessage, GATEWAY_DATA_PORT, gatewayInfo.address, (err) => {
             if (err) {
                 console.error(`[${this.deviceId}] Erro ao enviar anúncio:`, err);
@@ -81,7 +77,7 @@ class ContinuousDevice {
 
     startSendingData() {
         const dataSocket = dgram.createSocket('udp4');
-        const gatewayIp = '127.0.0.1'; // IP fixo do gateway para envio de dados
+        const gatewayIp = '127.0.0.1'; 
 
         setInterval(() => {
             const leitura = parseFloat((Math.random() * (35.0 - 18.0) + 18.0).toFixed(2));
@@ -116,7 +112,7 @@ class ContinuousDevice {
 
 if (require.main === module) {
     const sensor = new ContinuousDevice(
-        "AIR QUALITY SENSOR", // Exemplo de outro tipo de sensor
+        "AIR QUALITY SENSOR",
         messages.DeviceType.AIR_QUALITY_SENSOR,
         "µg/m³"
     );

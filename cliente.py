@@ -1,5 +1,4 @@
 import socket
-import time
 from protos import messages_pb2 
 # O endereço público do Gateway - a única coisa que o cliente precisa saber.
 GATEWAY_IP = '127.0.0.1'
@@ -89,11 +88,14 @@ def menu_principal():
         elif input_usuario == '3':
             comando = "LISTAR_DISPOSITIVOS" 
             print("\nSolicitando lista de dispositivos ao Gateway...")
-            resposta_do_servidor = enviar_comando_para_gateway(comando)
-            # A resposta já vem como bytes, então decodifique-a
-            print("--- Resposta do Gateway ---")
-            print(resposta_do_servidor.decode('utf-8'))
-            print("---------------------------\n")
+            try:
+                resposta_do_servidor = enviar_comando_para_gateway(comando)
+                print("--- Resposta do Gateway ---")
+                print(resposta_do_servidor.decode('utf-8'))
+                print("---------------------------\n")
+
+            except AttributeError:
+                print('[Erro 500]Serviço de gateway não disponível! Por favor, tente mais tarde')    
 
         elif input_usuario == 'x':
             break
