@@ -14,7 +14,7 @@ class TCPServer():
         """
         self.ip = ip
         self.porta = porta
-        self.handler = handler_function # Armazena a função "callback" do Gateway
+        self.handler = handler_function 
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -31,8 +31,6 @@ class TCPServer():
                 client_conn, client_addr = self.server_socket.accept()
                 print(f"[TCPServer] Nova conexão aceita de {client_addr}")
 
-                # Delega o trabalho de lidar com o cliente para a função handler
-                # em um novo thread. Isso impede que um cliente lento bloqueie os outros.
                 client_thread = threading.Thread(
                     target=self.handler, 
                     args=(client_conn, client_addr)

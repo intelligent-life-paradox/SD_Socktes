@@ -7,10 +7,7 @@ class Mulicast:
     def __init__(self):
         self.MCAST_GROUP = '224.1.1.1'
         self.MCAST_PORT = 5007
-        # A mensagem de descoberta também deve ser um Protobuf
-        self.discovery_request_msg = messages_pb2.SmartCityMessage() # Mensagem vazia, só para protocolo
-        
-        # O único lugar para armazenar dispositivos. A chave é o device_id.
+        self.discovery_request_msg = messages_pb2.SmartCityMessage()
         self.discovered_devices = {} 
 
     def getDevices(self):
@@ -26,8 +23,7 @@ class Mulicast:
 
     def Server(self):
         """
-        Este é o único método que o Gateway deve iniciar em uma thread.
-        Ele envia 'pings' de descoberta periodicamente. A resposta é tratada
+        Envia 'pings' de descoberta periodicamente. A resposta é tratada
         pelo servidor UDP principal do Gateway.
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -37,10 +33,8 @@ class Mulicast:
 
         while True:
             try:
-                # Envia a mensagem de descoberta
                 sock.sendto(self.discovery_request_msg.SerializeToString(), (self.MCAST_GROUP, self.MCAST_PORT))
-                # Aguarda 10 segundos para o próximo ping
                 time.sleep(10)
             except Exception as e:
                 print(f"[Multicast] Erro ao enviar ping de descoberta: {e}")
-                time.sleep(10) # Evita loop de erro rápido
+                time.sleep(10)
