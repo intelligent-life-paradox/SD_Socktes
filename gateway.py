@@ -66,7 +66,7 @@ class Gateway:
             if main_command == 'LIGAR_DISPOSITIVO' and len(parts) == 3:
                 tipo_dispositivo = int(parts[1])
                 ligar = self.falsetrue(parts[2])
-                device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
+                device_info_tuple = self.findDevice(tipo_dispositivo)
                 if device_info_tuple:
                     resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], ligar=ligar)
                     resposta_para_cliente = resposta_do_dispositivo
@@ -76,7 +76,7 @@ class Gateway:
             elif main_command == 'CONSULTAR_DISPOSITIVO' and len(parts) == 3:
                 tipo_dispositivo = int(parts[1])
                 consultar = self.falsetrue(parts[2])
-                device_info_tuple = self.encontraDispositivo(tipo_dispositivo)
+                device_info_tuple = self.findDevice(tipo_dispositivo)
                 if device_info_tuple:
                     resposta_do_dispositivo = self.send_command_to_device(device_info_tuple[0], consultar=consultar)
                     resposta_para_cliente = resposta_do_dispositivo
@@ -84,7 +84,7 @@ class Gateway:
                     resposta_para_cliente = f"ERRO: Nenhum dispositivo do tipo {tipo_dispositivo} encontrado."
 
             elif main_command == "LISTAR_DISPOSITIVOS":
-                resposta_para_cliente = self.listarDispositivos()
+                resposta_para_cliente = self.listDevices()
             
             else:
                 resposta_para_cliente = "ERRO: Comando desconhecido ou formato inválido."
@@ -128,7 +128,7 @@ class Gateway:
             print(f"ERRO ao se comunicar com o dispositivo {device_info.device_id}: {e}")
             return None
             
-    def listarDispositivos(self):
+    def listDevices(self):
         """Retorna uma string formatada com os IDs dos dispositivos online."""
         if not self.discovered_devices:
             return "--- Dispositivos Online ---\nNenhum dispositivo encontrado."
@@ -138,7 +138,7 @@ class Gateway:
            linhas_resposta += f'{device_info_obj.device_id}\n'
         return linhas_resposta
     
-    def encontraDispositivo(self, tipo_int):
+    def findDevice(self, tipo_int):
         """Busca o primeiro dispositivo de um tipo específico na lista de descobertos."""
         for device_info_obj, addr in self.discovered_devices.values():
             if device_info_obj.type == tipo_int:
