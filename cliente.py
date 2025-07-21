@@ -1,5 +1,5 @@
 import socket
-from protos import messages_pb2 
+#from protos import messages_pb2 
 # O endereço público do Gateway - a única coisa que o cliente precisa saber.
 GATEWAY_IP = '127.0.0.1'
 GATEWAY_TCP_PORT = 5009
