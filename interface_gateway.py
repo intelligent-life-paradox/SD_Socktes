@@ -1,50 +1,101 @@
 import streamlit as st
-from cliente import enviar_comando_para_gateway
+import pandas as pd
+import numpy as np
+import time
 
-# Mapeamento fixo dos tipos de dispositivo (valores inteiros do protobuf)
-TIPOS_DISPOSITIVO = {
-    "Poste de Iluminação": 1,
-    "Semáforo": 2,
-    "Câmera de Segurança": 3
-}
+st.set_page_config(layout="wide", page_title="Painel de Controle IoT")
+st.title("Painel de Controle - Smart City IoT 🏙️")
+st.markdown("Interface para monitoramento e controle de dispositivos conectados via Gateway.")
 
-st.set_page_config(layout="wide", page_title="Painel Gateway IoT")
-st.title("🌐 Interface Real - Dispositivos da Cidade Inteligente")
-st.markdown("Interface conectada ao Gateway via TCP para controle em tempo real.")
+def obter_dados_sensores():
+    temp = round(23.5 + np.random.randn() * 1.5, 1)
+    qualidade_ar = int(45 + np.random.randn() * 5)
+    return temp, qualidade_ar
 
-#  dispositivos online
-st.subheader("📡 Dispositivos Online")
-lista_raw = enviar_comando_para_gateway("LISTAR_DISPOSITIVOS")
-lista_formatada = lista_raw.splitlines()
+# Inicializa históricos, se necessário
+for nome, col in [("hist_temp", "Temperatura"), ("hist_ar", "Qualidade do Ar (AQI)")]:
+    if nome not in st.session_state:
+        st.session_state[nome] = pd.DataFrame(columns=[col])
 
-if "ERRO" in lista_formatada[0]:
-    st.error(lista_formatada[0])
-else:
-    for linha in lista_formatada[1:]:
-        st.success(f"🟢 {linha}")
-
-st.divider()
-
-# Controle e consulta
-st.subheader("⚙️ Controle de Dispositivos")
-
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3, gap="large")
 
 with col1:
-    st.markdown("### 🔌 Ligar/Desligar")
-    for nome, tipo in TIPOS_DISPOSITIVO.items():
-        ligado = st.toggle(f"{nome} - Ligar/Desligar")
-        if st.button(f"Aplicar: {nome}"):
-            comando = "LIGAR_DISPOSITIVO"
-            resposta = enviar_comando_para_gateway(comando, tipo=tipo, ligar=ligado)
-            st.toast(resposta.decode('utf-8'))
+    st.header("🎮 Controle de Atuadores")
+    st.markdown("---")
+
+    with st.expander("📷 Câmera de Segurança", expanded=True):
+        st.write("Status: **Online**")
+        if st.button("Ver Feed ao Vivo"):
+            st.toast("Iniciando streaming da câmera...")
+            st.image("https://via.placeholder.com/300x200.png?text=Feed+da+Câmera",
+                     caption="Simulação do feed da Câmera 1")
+
+    with st.expander("💡 Poste de Iluminação", expanded=True):
+        st.write("Status: **Online**")
+        ligado = st.toggle("Ligar/Desligar Poste 1", value=True)
+        st.success("O poste está LIGADO.") if ligado else st.warning("O poste está DESLIGADO.")
+
+    with st.expander("🚦 Semáforo", expanded=True):
+        st.write("Status: **Online**")
+        modo_semaforo = st.radio(
+            "Selecionar estado do Semáforo 1",
+            ["Verde", "Amarelo", "Vermelho", "Modo Automático"],
+            horizontal=True,
+            index=3
+        )
+        st.info(f"Semáforo operando em: **{modo_semaforo}**")
 
 with col2:
-    st.markdown("### 🔍 Consultar Estado")
-    for nome, tipo in TIPOS_DISPOSITIVO.items():
-        if st.button(f"Consultar: {nome}"):
-            comando = "CONSULTAR_DISPOSITIVO"
-            resposta = enviar_comando_para_gateway(comando, tipo=tipo, consultar='true')
-            st.info(resposta.decode('utf-8'))
+    st.header("📊 Monitoramento Central")
+    st.markdown("---")
 
-st.caption("Interface operando com base na comunicação TCP com Gateway.")
+    st.subheader("Status do Gateway")
+    st.success("✓ Conectado e Operacional")
+    st.markdown("---")
+
+    st.subheader("Sensores em Tempo Real")
+    temp_atual, ar_atual = obter_dados_sensores()
+
+    # Adiciona ao histórico
+    st.session_state.hist_temp.loc[len(st.session_state.hist_temp)] = [temp_atual]
+    st.session_state.hist_ar.loc[len(st.session_state.hist_ar)] = [ar_atual]
+
+    for nome in ["hist_temp", "hist_ar"]:
+        if len(st.session_state[nome]) > 20:
+            st.session_state[nome] = st.session_state[nome].tail(20)
+
+    st.metric("🌡️ Sensor de Temperatura", f"{temp_atual} °C", f"{round(temp_atual - 23.5, 1)} °C")
+    st.metric("🌬️ Sensor de Qualidade do Ar (AQI)", f"{ar_atual}", f"{ar_atual - 45}", delta_color="inverse")
+    st.markdown("---")
+
+    st.subheader("Histórico de Dados")
+    st.line_chart(st.session_state.hist_temp)
+    st.line_chart(st.session_state.hist_ar)
+
+with col3:
+    st.header("📡 Gerenciamento de Dispositivos")
+    st.markdown("---")
+
+    if st.button("🔎 Buscar Novos Dispositivos na Rede"):
+        with st.spinner("Procurando dispositivos... (Simulação de Multicast UDP)"):
+            time.sleep(2)
+        st.toast("Busca concluída! 1 novo dispositivo encontrado.")
+
+    st.subheader("Dispositivos Conectados")
+    dispositivos = {
+        "Câmera 1": {"tipo": "Câmera", "status": "Online", "icon": "📷"},
+        "Poste P-04": {"tipo": "Poste", "status": "Online", "icon": "💡"},
+        "Semáforo S-01": {"tipo": "Semáforo", "status": "Online", "icon": "🚦"},
+        "Sensor Temp-A": {"tipo": "Sensor de Temperatura", "status": "Online", "icon": "🌡️"},
+        "Sensor Ar-A": {"tipo": "Sensor de Qualidade do Ar", "status": "Online", "icon": "🌬️"},
+        "Câmera 2": {"tipo": "Câmera", "status": "Offline", "icon": "📷"},
+    }
+
+    for nome, info in dispositivos.items():
+        status_func = st.success if info["status"] == "Online" else st.error
+        status_func(f"{info['icon']} **{nome}** - Status: {info['status']}")
+
+st.markdown("---")
+st.text("Interface de exemplo desenvolvida com Streamlit.")
+
+
